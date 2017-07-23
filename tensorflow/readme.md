@@ -1,4 +1,4 @@
-# ninnin
+# ninnin / tensorflow
 
 画像解析用スクリプト
 
