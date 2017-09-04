@@ -32,7 +32,7 @@ for dir in os.listdir("data/train"):
             # 画像を25x25pixelに変換し、1要素が[R,G,B]3要素を含む配列の25x25の２次元配列として読み込む。
             # [R,G,B]はそれぞれが0-255の配列。
             image = np.array(Image.open(filepath).resize((25, 25)))
-            print(filepath)
+            # print(filepath)
             # 配列を変換し、[[Redの配列],[Greenの配列],[Blueの配列]] のような形にする。
             image = image.transpose(2, 0, 1)
             # さらにフラットな1次元配列に変換。最初の1/3はRed、次がGreenの、最後がBlueの要素がフラットに並ぶ。
@@ -66,6 +66,10 @@ opt = Adam(lr=0.001)
 model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
 # 学習を実行。10%はテストに使用。
 model.fit(image_list, Y, nb_epoch=1500, batch_size=100, validation_split=0.1)
+
+print("\n\n\n\n\n\n\n\n")
+print("--------------- train finish ---------------")
+print("\n\n\n\n\n\n\n\n")
 
 # テスト用ディレクトリ(./data/train/)の画像でチェック。正解率を表示する。
 total = 0.
