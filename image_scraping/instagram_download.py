@@ -11,15 +11,16 @@ from urllib.error import URLError, HTTPError
 
 
 ########### 設定パラメータ ###########
-arg = sys.argv
-if len(arg) == 1:
-    print("検索したいワードがありません")
-    sys.exit()
+# arg = sys.argv
+# if len(arg) == 1:
+#     print("検索したいワードがありません")
+#     sys.exit()
 
 #検索ワード
-word = arg[1]
+# word = arg[1]
+word = 'ピカチュウ'
 #ダウンロード数
-imageNum = 100 #最大値100
+imageNum = 200 #最大値100
 USER_AGENT = 'Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.27 Safari/537.17'
 ########### End ###########
 
@@ -40,30 +41,52 @@ def download_page(url):
 
 #検索
 def _images_get_next_item(s):
-    start_line = s.find('rg_di')
+    start_line = s.find('thumbnail_src')
     if start_line == -1:
         end_quote = 0
         link = "no_links"
         return link, end_quote
     else:
-        start_line = s.find('"class="rg_meta"')
-        start_content = s.find('"ou"', start_line+1)
-        end_content = s.find(',"ow"', start_content+1)
-        content_raw = str(s[start_content+6:end_content-1])
+        start_content = s.find('"thumbnail_src": "')
+        end_content = s.find('", "', start_content+1)
+        content_raw = str(s[start_content+18:end_content])
         return content_raw, end_content
 
 
 #リンク取得
-def _images_get_all_items(page):
+def _images_get_all_items(URL):
+    HTML = (download_page(URL))
+    time.sleep(0.05)
     _items = []
+    start_end_cursor = HTML.find('"end_cursor": "')
+    end_end_cursor = HTML.find('"}}, "top_posts"')
+    end_cursor = str(HTML[start_end_cursor+15:end_end_cursor])
     while True:
-        item, end_content = _images_get_next_item(page)
+        item, end_content = _images_get_next_item(HTML)
         if item == "no_links":
+            NEXT_URL = '{}&max_id={}'.format(URL, end_cursor)
             break
         else:
             _items.append(item)
             time.sleep(0.05)
-            page = page[end_content:]
+            HTML = HTML[end_content:]
+    while True:
+        HTML = (download_page(NEXT_URL))
+        time.sleep(0.05)
+        start_end_cursor = HTML.find('"end_cursor": "')
+        end_end_cursor = HTML.find('"}}, "top_posts"')
+        end_cursor = str(HTML[start_end_cursor+15:end_end_cursor])
+        while True:
+            item, end_content = _images_get_next_item(HTML)
+            if item == "no_links":
+                NEXT_URL = '{}&max_id={}'.format(URL, end_cursor)
+                break
+            else:
+                _items.append(item)
+                time.sleep(0.05)
+                HTML = HTML[end_content:]
+        if len(_items) >= imageNum:
+            break
     return _items
 
 
@@ -77,19 +100,18 @@ items = []
 search = temp.replace(" ", "%20")
 
 print("検索ワード:" + search)
-URL = 'https://www.google.com/search?q=' + search + '&espv=2&biw=1366&bih=667&site=webhp&source=lnms&tbm=isch&sa=X&ei=XosDVaCXD8TasATItgE&ved=0CAcQ_AUoAg'
+URL = 'https://www.instagram.com/explore/tags/' + search + '/?__a=1'
 p = urlparse(URL)
-query = urllib.parse.quote_plus(p.query, safe='=&')
-URL = '{}://{}{}{}{}{}{}{}{}'.format(p.scheme, p.netloc, p.path,';' if p.params else '', p.params,'?' if p.query else '', query,'#' if p.fragment else '', p.fragment)
-RAW_HTML = (download_page(URL))
-time.sleep(0.05)
-items.extend(_images_get_all_items(RAW_HTML))
+path = urllib.parse.quote_plus(p.path, safe='/')
+URL = '{}://{}{}{}{}{}{}{}{}'.format(p.scheme, p.netloc, path,';' if p.params else '', p.params,'?' if p.query else '', p.query,'#' if p.fragment else '', p.fragment)
+
+items.extend(_images_get_all_items(URL))
 
 print("ダウンロード開始")
 
 errorCount = 0
 Cnt = 0
-folderName = os.getcwd() + '/images/' + word
+folderName = os.getcwd() + '/images/instagram_' + word
 if os.path.exists(folderName)==False:
     os.mkdir(folderName)
 for item in items:
